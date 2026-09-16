@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Memoria Giapponese</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#202124">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root { --bg:#f5f5f7; --card:#fff; --text:#202124; --muted:#6b7280; --line:#ddd; --accent:#333; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:Segoe UI,Arial,sans-serif; background:var(--bg); color:var(--text); }
+  header { background:#202124; color:white; padding:24px 20px; }
+  header h1 { margin:0 0 6px; font-size:26px; }
+  header p { margin:0; color:#d6d6d6; }
+  nav { display:flex; gap:8px; flex-wrap:wrap; padding:14px 20px; background:white; border-bottom:1px solid var(--line); position:sticky; top:0; z-index:5; }
+  nav button { border:1px solid var(--line); background:white; padding:10px 14px; border-radius:8px; cursor:pointer; }
+  nav button.active { background:#202124; color:white; }
+  nav button.important-tab { font-weight:700; border:2px solid #202124; background:#f0f1f2; }
+  nav button.important-tab.active { background:#202124; color:white; }
+  main { max-width:1000px; margin:24px auto; padding:0 16px 40px; }
+  section { display:none; }
+  section.active { display:block; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:20px; margin-bottom:18px; }
+  h2 { margin-top:0; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; }
+  label { display:block; font-weight:600; font-size:14px; margin-bottom:5px; }
+  input, textarea, select { width:100%; padding:10px; border:1px solid #cfd2d6; border-radius:8px; font:inherit; }
+  textarea { min-height:130px; resize:vertical; }
+  button.primary { background:#202124; color:white; border:0; padding:11px 16px; border-radius:8px; cursor:pointer; }
+  button.secondary { background:white; border:1px solid var(--line); padding:9px 13px; border-radius:8px; cursor:pointer; }
+  button.danger { color:#a40000; border-color:#e5bcbc; }
+  .result { border:1px solid var(--line); border-radius:9px; padding:13px; margin-top:10px; }
+  .jp { font-size:24px; }
+  .reading { color:#666; margin-left:8px; }
+  .meta { color:var(--muted); font-size:14px; margin-top:5px; }
+  .tag { display:inline-block; background:#eee; border-radius:999px; padding:3px 8px; margin:3px 3px 0 0; font-size:12px; }
+  .unknown { color:#a40000; background:#fff0f0; padding:4px 7px; border-radius:5px; }
+  .known { color:#146c2e; background:#effaf1; padding:4px 7px; border-radius:5px; }
+  .sentence-token { display:inline-block; margin:3px; }
+  .stats { display:flex; gap:12px; flex-wrap:wrap; }
+  .stat { background:#f0f1f2; border-radius:9px; padding:12px 16px; }
+  .empty { color:var(--muted); text-align:center; padding:20px; }
+  .toolbar { display:flex; gap:8px; flex-wrap:wrap; margin:12px 0; }
+  small { color:var(--muted); }
+
+  .wk-row { display:flex; gap:12px; align-items:center; border:1px solid var(--line); border-radius:9px; padding:11px; margin:7px 0; }
+  .wk-row input[type="checkbox"] { width:auto; flex:0 0 auto; }
+  .wk-main { flex:1; min-width:0; }
+  .wk-jp { font-size:21px; font-weight:700; }
+  .wk-meaning { color:#555; margin-top:2px; }
+  .wk-level { color:#777; font-size:12px; white-space:nowrap; }
+  .wk-existing { opacity:.55; background:#f7f7f7; }
+  .wk-error { background:#fff0f0; color:#8d0000; border:1px solid #efc5c5; padding:10px; border-radius:8px; }
+  .wk-success { background:#effaf1; color:#146c2e; border:1px solid #c8e8cf; padding:10px; border-radius:8px; }
+  .missing-it { background:#fff8e6; color:#7a5200; border:1px solid #ead39a; padding:10px; border-radius:8px; }
+  .bulk-row { display:grid; grid-template-columns:minmax(130px,1fr) minmax(110px,1.2fr) minmax(180px,1.6fr) minmax(220px,2fr); gap:10px; align-items:center; border:1px solid var(--line); border-radius:9px; padding:10px; margin:7px 0; }
+  .bulk-jp { font-size:21px; font-weight:700; }
+  .bulk-en { color:#555; }
+  .bulk-row input { min-width:0; }
+  .page-info { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  @media(max-width:760px){ .bulk-row { grid-template-columns:1fr; } }
+
+  code { background:#eee; padding:2px 5px; border-radius:4px; }
+  #welcomeOverlay { position:fixed; inset:0; z-index:100; background:rgba(32,33,36,.72); display:flex; align-items:center; justify-content:center; padding:20px; }
+  #welcomeOverlay[hidden] { display:none; }
+  .welcome-card { max-width:720px; width:100%; background:white; border-radius:18px; padding:32px; box-shadow:0 20px 60px rgba(0,0,0,.25); text-align:center; }
+  .welcome-logo { font-size:52px; margin-bottom:8px; }
+  .welcome-card h1 { margin:0 0 8px; font-size:30px; }
+  .welcome-card p { color:#555; line-height:1.55; }
+  .welcome-actions { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:24px; }
+  .welcome-option { border:1px solid var(--line); border-radius:12px; padding:20px; background:#fafafa; cursor:pointer; text-align:left; }
+  .welcome-option:hover { border-color:#888; background:#f5f5f5; }
+  .welcome-option strong { display:block; font-size:18px; margin-bottom:6px; }
+  .welcome-option span { color:#666; font-size:14px; }
+  @media(max-width:650px){ .welcome-actions { grid-template-columns:1fr; } .welcome-card { padding:24px; } }
+</style>
+</head>
+<body>
+<div id="welcomeOverlay" hidden>
+  <div class="welcome-card">
+    <div class="welcome-logo">🇯🇵</div>
+    <h1>Benvenuto in Memoria Giapponese</h1>
+    <p>Il tuo assistente personale per ricordare il vocabolario giapponese che hai studiato.<br>Puoi iniziare da zero oppure importare un archivio già esistente.</p>
+    <div class="welcome-actions">
+      <button class="welcome-option" id="startEmpty" type="button"><strong>📚 Inizia con un archivio vuoto</strong><span>Crea il tuo archivio personale da zero.</span></button>
+      <label class="welcome-option" for="welcomeImport"><strong>📥 Importa un archivio</strong><span>Carica un file JSON esportato da Memoria Giapponese.</span><input id="welcomeImport" type="file" accept=".json,application/json" style="display:none"></label>
+    </div>
+    <p style="font-size:13px;margin-top:22px">I tuoi vocaboli vengono salvati localmente nel browser/app. Puoi fare un backup in qualsiasi momento con <strong>Esporta archivio</strong>.</p>
+  </div>
+</div>
+
+<header>
+  <h1>🇯🇵 Memoria Giapponese</h1>
+  <p>Il tuo archivio personale di vocaboli per aiutarti a richiamare alla memoria il giapponese.</p>
+</header>
+
+<nav>
+  <button class="tab active" data-tab="home">Home</button>
+  <button class="tab" data-tab="vocab">📚 Vocabolario</button>
+  <button class="tab" data-tab="search">🔎 Cerca</button>
+  <button class="tab" data-tab="sentence">✍️ Frase</button>
+  <button class="tab" data-tab="review">🧠 Ripasso</button>
+  <button class="tab" data-tab="wanikani">🔄 WaniKani</button>
+  <button class="tab important-tab" data-tab="bulkIt">🇮🇹 Significati italiani</button>
+</nav>
+
+<main>
+<section id="home" class="active">
+  <div class="card">
+    <h2>Benvenuto!</h2>
+    <p>Questo programma non vuole sostituire un traduttore: usa <strong>solo i vocaboli che inserisci tu</strong>, per aiutarti a recuperarli quando ti servono.</p>
+    <div class="stats">
+      <div class="stat"><strong id="count">0</strong><br><small>vocaboli</small></div>
+      <div class="stat"><strong id="synCount">0</strong><br><small>sinonimi/varianti</small></div>
+      <div class="stat"><strong id="wkCount">0</strong><br><small>da WaniKani</small></div>
+      <div class="stat"><strong id="exprCount">0</strong><br><small>espressioni</small></div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Come usarlo</h2>
+    <ol>
+      <li>Inserisci i vocaboli che hai studiato.</li>
+      <li>Quando non ricordi una parola, cercala in italiano.</li>
+      <li>Puoi inserire anche espressioni idiomatiche o costruzioni intere, come <em>気になる</em> o <em>～たことがある</em>.</li>
+      <li>Quando vuoi costruire una frase, incollala nella sezione <strong>Frase</strong>.</li>
+      <li>Il programma mostrerà le parole del tuo archivio che riesce a riconoscere, lasciandoti costruire autonomamente il giapponese.</li>
+    </ol>
+  </div>
+</section>
+
+<section id="vocab">
+  <div class="card">
+    <h2>Aggiungi vocabolo</h2>
+    <form id="vocabForm">
+      <div class="grid">
+        <div><label>Tipo *</label><select id="type"><option value="vocab">Vocabolo</option><option value="expression">Espressione / frase idiomatica</option></select></div>
+        <div><label>Italiano *</label><input id="it" required placeholder="es. dimenticare"></div>
+        <div><label>Giapponese *</label><input id="jp" required placeholder="es. 忘れる"></div>
+        <div><label>Lettura / kana</label><input id="reading" placeholder="es. わすれる"></div>
+        <div><label>Sinonimi / parole correlate</label><input id="syn" placeholder="separali con virgole"></div>
+      </div>
+      <div style="margin-top:12px"><label>Nota</label><input id="note" placeholder="es. dimenticare di fare qualcosa: ～のを忘れる"></div>
+      <div style="margin-top:12px"><label>Significato WaniKani (inglese, facoltativo)</label><input id="wkMeaning" placeholder="es. eat, meet, friend"></div>
+      <div style="margin-top:10px"><small>Per un’espressione idiomatica, inserisci il significato naturale che vuoi ricordare e l’espressione giapponese completa. Non devono essere traducibili parola per parola.</small></div>
+      <div style="margin-top:14px"><button class="primary">Salva vocabolo</button></div>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Il tuo archivio</h2>
+    <div id="wkMissingNotice"></div>
+    <div class="toolbar">
+      <input id="listFilter" placeholder="Filtra l'archivio..." style="max-width:420px">
+      <button class="secondary" id="exportBtn">Esporta archivio</button>
+      <label class="secondary" style="cursor:pointer">Importa archivio <input type="file" id="importFile" accept=".json" style="display:none"></label>
+    </div>
+    <div id="vocabList"></div>
+  </div>
+
+</section>
+
+<section id="search">
+  <div class="card">
+    <h2>Cerca un vocabolo</h2>
+    <p><small>Cerca in italiano, nei sinonimi oppure nel giapponese.</small></p>
+    <input id="searchBox" placeholder="es. ricordare">
+    <div id="searchResults"></div>
+  </div>
+</section>
+
+<section id="sentence">
+  <div class="card">
+    <h2>✍️ Costruisci la frase</h2>
+    <p>Scrivi una frase in italiano. Il programma cercherà nel tuo archivio <strong>sia i vocaboli sia le espressioni idiomatiche</strong> che hai già studiato.</p>
+    <textarea id="sentenceBox" placeholder="es. Ieri ho incontrato un mio amico e abbiamo parlato di cinema."></textarea>
+    <div class="toolbar">
+      <button class="primary" id="analyzeBtn">Analizza frase</button>
+      <button class="secondary" id="clearSentence">Cancella</button>
+    </div>
+    <div id="sentenceResults"></div>
+  </div>
+  <div class="card">
+    <h2>💡 Importante</h2>
+    <p>Questa funzione <strong>non traduce la frase</strong>. Se una parola non è nel tuo archivio, verrà indicata come non riconosciuta. È intenzionale: l'obiettivo è costringerti a recuperare dalla memoria ciò che hai studiato.</p>
+  </div>
+</section>
+
+<section id="review">
+  <div class="card">
+    <h2>🧠 Ripasso</h2>
+    <p>Prova a ricordare il giapponese prima di mostrarlo.</p>
+    <div id="reviewArea"></div>
+  </div>
+</section>
+
+<section id="bulkIt">
+  <div class="card" id="bulkItCard">
+    <h2>🇮🇹 Completa i significati italiani</h2>
+    <p>Qui puoi completare rapidamente le voci WaniKani che hanno ancora solo il significato inglese. Le modifiche vengono salvate tutte insieme. <strong>Il programma non traduce automaticamente:</strong> sei tu a scegliere il significato italiano che vuoi davvero ricordare.</p>
+    <div id="bulkItStatus"></div>
+    <div class="toolbar">
+      <input id="bulkItFilter" placeholder="Filtra per italiano, inglese o giapponese..." style="max-width:520px">
+      <button class="primary" id="bulkItSave">Salva modifiche</button>
+    </div>
+    <div class="page-info">
+      <button class="secondary" id="bulkPrev">← Precedenti</button>
+      <span id="bulkPageInfo"></span>
+      <button class="secondary" id="bulkNext">Successivi →</button>
+      <label style="display:flex;align-items:center;gap:6px;font-weight:400">Voci per pagina <select id="bulkPageSize" style="width:auto"><option>25</option><option selected>50</option><option>100</option></select></label>
+    </div>
+    <div id="bulkItList" style="margin-top:10px"></div>
+  </div>
+</section>
+
+<section id="wanikani">
+  <div class="card">
+    <h2>🔄 Importa da WaniKani</h2>
+    <p>Importa i vocaboli dal tuo account tramite <strong>WaniKani API v2</strong>. La richiesta viene effettuata direttamente dal browser verso l'API ufficiale.</p>
+    <div class="grid">
+      <div><label>API token *</label><input id="wkToken" type="password" autocomplete="off" placeholder="Incolla qui il tuo token v2"></div>
+      <div><label>Livelli</label><input id="wkLevels" placeholder="es. 1-10, 15, 20"></div>
+      <div><label>Contenuti</label><select id="wkType"><option value="vocabulary">Vocabulary</option><option value="kana_vocabulary">Kana vocabulary</option><option value="both">Entrambi</option></select></div>
+    </div>
+    <div class="toolbar" style="margin-top:14px"><button class="primary" id="wkLoad">Carica da WaniKani</button><button class="secondary" id="wkClearToken">Cancella token dal campo</button></div>
+    <p><small>Il token non viene salvato nel database dei vocaboli e questa versione non lo memorizza automaticamente. Viene usato solo per la richiesta che avvii tu. <strong>Non inviarlo in chat.</strong></small></p>
+    <div id="wkStatus"></div>
+  </div>
+  <div class="card" id="wkResultsCard" style="display:none">
+    <h2>Seleziona i vocaboli da importare</h2>
+    <p><small>Quelli già presenti nel tuo archivio sono automaticamente esclusi.</small></p>
+    <div class="toolbar"><button class="secondary" id="wkSelectAll">Seleziona tutto</button><button class="secondary" id="wkSelectNone">Deseleziona tutto</button><button class="primary" id="wkImportSelected">Importa selezionati</button></div>
+    <div id="wkResults"></div>
+  </div>
+  <div class="card"><h2>Come funziona</h2><ol><li>Inserisci il tuo token v2.</li><li>Facoltativamente indica i livelli, per esempio <code>1-10</code>.</li><li>Carica i vocaboli.</li><li>Controlla l'anteprima e seleziona ciò che vuoi aggiungere.</li><li>I dati importati entrano nel tuo normale archivio.</li></ol><p><small>Il programma segue automaticamente le pagine successive restituite dall'API. L'importazione dei vocaboli WaniKani resta separata dalla traduzione italiana: il significato inglese viene conservato come riferimento.</small></p></div>
+</section>
+</main>
+
+<script>
+const KEY = "memoria_giapponese_v1";
+let vocab = JSON.parse(localStorage.getItem(KEY) || "[]").map(v=>({...v,type:v.type||"vocab"}));
+// Migrazione 4.1 -> 4.2: i significati importati da WaniKani erano in inglese.
+// Li conserviamo nel campo wkMeaning e lasciamo vuoto il campo italiano, così la
+// ricerca italiana non produce falsi positivi. L'utente può completare le voci.
+vocab = vocab.map(v=>{
+  if(v.source==="WaniKani" && !v.wkMeaning && v.it){
+    return {...v, wkMeaning:v.it, it:""};
+  }
+  return v;
+});
+localStorage.setItem(KEY, JSON.stringify(vocab));
+let reviewIndex = 0;
+let reviewShown = false;
+
+function save(){ localStorage.setItem(KEY, JSON.stringify(vocab)); updateStats(); renderList(); }
+function updateStats(){
+  document.getElementById("count").textContent = vocab.length;
+  document.getElementById("synCount").textContent = vocab.reduce((n,v)=>n+(v.syn||[]).length,0);
+  document.getElementById("wkCount").textContent = vocab.filter(v=>v.source==="WaniKani").length;
+  document.getElementById("exprCount").textContent = vocab.filter(v=>v.type==="expression").length;
+}
+function esc(s){ return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function norm(s){
+  return String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .replace(/[’“”]/g,"'")
+    .replace(/[.,!?;:()[\]{}]/g," ")
+    .replace(/\s+/g," ").trim();
+}
+
+document.querySelectorAll(".tab").forEach(btn=>{
+  btn.addEventListener("click",()=>{
+    document.querySelectorAll(".tab").forEach(b=>b.classList.remove("active"));
+    document.querySelectorAll("section").forEach(s=>s.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById(btn.dataset.tab).classList.add("active");
+    if(btn.dataset.tab==="review") renderReview();
+  });
+});
+
+document.getElementById("vocabForm").addEventListener("submit",e=>{
+  e.preventDefault();
+  const item={
+    id:Date.now(),
+    type:document.getElementById("type").value,
+    it:document.getElementById("it").value.trim(),
+    jp:document.getElementById("jp").value.trim(),
+    reading:document.getElementById("reading").value.trim(),
+    syn:document.getElementById("syn").value.split(",").map(x=>x.trim()).filter(Boolean),
+    note:document.getElementById("note").value.trim(),
+     wkMeaning:document.getElementById("wkMeaning").value.trim()
+  };
+  const editing=vocab.find(v=>v._editing);
+  if(editing){ Object.assign(editing,item,{id:editing.id}); delete editing._editing; document.querySelector("#vocabForm button").textContent="Salva vocabolo"; alert("Vocabolo aggiornato!"); }
+  else { vocab.push(item); alert("Vocabolo salvato!"); }
+  save(); e.target.reset();
+});
+
+
+function renderWkMissingNotice(){
+  const box=document.getElementById("wkMissingNotice"); if(!box)return;
+  const n=vocab.filter(v=>v.source==="WaniKani"&&!String(v.it||"").trim()).length;
+  box.innerHTML=n?`<div class="missing-it"><strong>🇮🇹 ${n} vocaboli WaniKani devono ancora avere il significato italiano.</strong><br>WaniKani fornisce il significato in inglese. Ora puoi completarli in massa nella scheda <strong>🇮🇹 Significati italiani</strong>, senza aprire 1120 voci una per una.</div>`:"";
+}
+
+function renderList(){
+  const filter=norm(document.getElementById("listFilter")?.value||"");
+  const arr=vocab.filter(v=>!filter || [v.it,v.jp,v.reading,...v.syn,v.note,v.wkMeaning].some(x=>norm(x||"").includes(filter)));
+  renderWkMissingNotice();
+  const box=document.getElementById("vocabList");
+  if(!arr.length){box.innerHTML='<div class="empty">Nessun vocabolo nell’archivio.</div>';return;}
+  box.innerHTML=arr.map(v=>`
+    <div class="result">
+      <strong>${esc(v.it)}</strong> ${v.type==="expression"?'<span class="tag">espressione</span>':""} → <span class="jp">${esc(v.jp)}</span>
+      ${v.reading?`<span class="reading">（${esc(v.reading)}）</span>`:""}
+      ${v.syn?.length?`<div>${v.syn.map(s=>`<span class="tag">${esc(s)}</span>`).join("")}</div>`:""}
+      ${v.note?`<div class="meta">${esc(v.note)}</div>`:""}
+      ${v.wkMeaning?`<div class="meta">WaniKani: ${esc(v.wkMeaning)}</div>`:""}
+      ${!v.it?`<div class="meta" style="color:#a40000"><strong>⚠️ Manca il significato italiano:</strong> modifica questa voce.</div>`:""}
+      <div style="margin-top:9px"><button class="secondary" onclick="editVocab(${v.id})">Modifica</button> <button class="secondary danger" onclick="removeVocab(${v.id})">Elimina</button></div>
+    </div>`).join("");
+}
+function editVocab(id){ const v=vocab.find(x=>x.id===id); if(!v)return; document.getElementById("type").value=v.type||"vocab";
+  document.getElementById("it").value=v.it; document.getElementById("jp").value=v.jp; document.getElementById("reading").value=v.reading||""; document.getElementById("syn").value=(v.syn||[]).join(", "); document.getElementById("note").value=v.note||""; document.getElementById("wkMeaning").value=v.wkMeaning||""; v._editing=true; document.querySelector("[data-tab=\"vocab\"]").click(); document.querySelector("#vocabForm button").textContent="Aggiorna vocabolo"; window.scrollTo({top:0,behavior:"smooth"}); }
+function removeVocab(id){ if(confirm("Eliminare questo vocabolo?")){vocab=vocab.filter(v=>v.id!==id);save();} }
+document.getElementById("listFilter").addEventListener("input",renderList);
+
+document.getElementById("searchBox").addEventListener("input",()=>{
+  const q=norm(document.getElementById("searchBox").value);
+  const box=document.getElementById("searchResults");
+  if(!q){box.innerHTML="";return;}
+  const arr=vocab.filter(v=>[v.it,...(v.syn||[]),v.jp,v.reading,v.wkMeaning].some(x=>norm(x||"").includes(q)));
+  box.innerHTML=arr.length?arr.map(v=>`
+    <div class="result"><strong>${esc(v.it)}</strong> ${v.type==="expression"?'<span class="tag">espressione</span>':""} → <span class="jp">${esc(v.jp)}</span>
+    ${v.reading?`<span class="reading">（${esc(v.reading)}）</span>`:""}
+    ${v.note?`<div class="meta">${esc(v.note)}</div>`:""}
+      ${v.wkMeaning?`<div class="meta">WaniKani: ${esc(v.wkMeaning)}</div>`:""}
+      ${!v.it?`<div class="meta" style="color:#a40000"><strong>⚠️ Manca il significato italiano:</strong> modifica questa voce.</div>`:""}</div>`).join("")
+    :'<div class="empty">Non trovo questo termine nel tuo archivio.</div>';
+});
+
+function stemIt(s){
+  const x=cleanToken(s).replace(/^['’]+|['’]+$/g,"");
+  if(/(?:ato|ata|ati|ate)$/.test(x)) return x.replace(/(?:ato|ata|ati|ate)$/,'are');
+  if(/(?:ito|ita|iti|ite)$/.test(x)) return x.replace(/(?:ito|ita|iti|ite)$/,'ire');
+  if(/(?:uto|uta|uti|ute)$/.test(x)) return x.replace(/(?:uto|uta|uti|ute)$/,'ere');
+  return x;
+}
+function cleanToken(s){ return norm(s).trim(); }
+// Divide un significato italiano che contiene più equivalenti (es. "sollevare, alzare")
+// in singoli termini ricercabili. Questo vale sia per il campo Italiano sia per i sinonimi.
+function italianTerms(value){
+  return String(value||"").split(/[,;\/|]+/).map(x=>norm(x)).filter(Boolean);
+}
+function variants(s){
+  const n=cleanToken(s);
+  const irr={
+    dimenticato:'dimenticare',dimenticata:'dimenticare',dimenticati:'dimenticare',dimenticate:'dimenticare',
+    ricordato:'ricordare',ricordata:'ricordare',ricordati:'ricordare',ricordate:'ricordare',
+    incontrato:'incontrare',incontrata:'incontrare',incontrati:'incontrare',incontrate:'incontrare',
+    mangiato:'mangiare',mangiata:'mangiare',mangiati:'mangiare',mangiate:'mangiare',
+    alzato:'alzare',alzata:'alzare',alzati:'alzare',alzate:'alzare',
+    sollevato:'sollevare',sollevata:'sollevare',sollevati:'sollevare',sollevate:'sollevare',
+    visto:'vedere',vista:'vedere',visti:'vedere',viste:'vedere',
+    fatto:'fare',fatta:'fare',fatti:'fare',fatte:'fare',
+    detto:'dire',detta:'dire',detti:'dire',dette:'dire',
+    bevuto:'bere',bevuta:'bere',bevuti:'bere',bevute:'bere',
+    avuto:'avere',avuta:'avere',avuti:'avere',avute:'avere',
+    stato:'essere',stata:'essere',stati:'essere',state:'essere'
+  };
+  const stem=stemIt(n);
+  return new Set([n,irr[n]||'',stem].filter(Boolean));
+}
+function tokenVariants(word){ return variants(word); }
+function termRegex(term){
+  const t=norm(term);
+  if(!t) return null;
+  const escaped=t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  return new RegExp('(^|\\s)'+escaped+'(?=\\s|$)','i');
+}
+
+// Parole funzionali che non devono impedire il riconoscimento del vocabolo vicino.
+// Restano comunque ricercabili se l'utente le ha effettivamente inserite nell'archivio.
+const IGNORE_IN_SENTENCE=new Set([
+  'a','ad','al','alla','ai','agli','alle','da','dal','dalla','dai','dagli','dalle',
+  'di','del','della','dei','degli','delle','in','nel','nella','nei','negli','nelle',
+  'con','su','sul','sulla','sui','sugli','sulle','per','tra','fra',
+  'il','lo','la','i','gli','le','un','uno','una','un',
+  'e','ed','o','ma','che','non',
+  'ho','hai','ha','abbiamo','avete','hanno',
+  'sono','sei','e','siamo','siete','essere',
+  'ero','eri','era','eravamo','eravate','erano',
+  'del','dello','della','dei','degli','delle'
+]);
+
+function sentenceTokens(sentence){
+  const n=norm(sentence), out=[];
+  const re=/[a-zà-ÿ]+(?:['’][a-zà-ÿ]+)?/gi;
+  let m;
+  while((m=re.exec(n))) out.push({word:m[0],start:m.index,end:m.index+m[0].length});
+  return {n,out};
+}
+
+function findMatches(sentence){
+  const {n,out:tokens}=sentenceTokens(sentence), matches=[];
+
+  // 1) Prima cerchiamo tutte le espressioni composte da più parole.
+  //    IMPORTANTE: un termine composto può essere stato salvato come semplice
+  //    "vocabolo" (es. "l'altra sera" importato/completato da WaniKani),
+  //    quindi NON dipendiamo dal campo type="expression".
+  vocab.forEach(v=>{
+    [...new Set([v.it,...(v.syn||[])].flatMap(italianTerms))].forEach(term=>{
+      if(!term.includes(' ')) return;
+      const escaped=term.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+      const re=new RegExp('(^|[^a-zà-ÿ])'+escaped+'(?=$|[^a-zà-ÿ])','gi');
+      let m;
+      while((m=re.exec(n))){
+        const start=m.index+(m[1]||'').length;
+        matches.push({term:term,v,start,end:start+term.length,exact:true});
+      }
+    });
+  });
+
+  // 2) Poi le singole parole. Ogni parola è indipendente da articoli,
+  //    preposizioni e ausiliari vicini.
+  vocab.forEach(v=>{
+    const terms=[...new Set([v.it,...(v.syn||[])].flatMap(italianTerms).filter(t=>t&&!t.includes(' ')))];
+    terms.forEach(term=>{
+      const termVariants=variants(term);
+      for(const tok of tokens){
+        const tokenVars=tokenVariants(tok.word);
+        // Confronto diretto: "alzato" può diventare "alzare" e quindi
+        // coincidere con il termine "alzare" dell'archivio.
+        if([...tokenVars].some(x=>termVariants.has(x))){
+          if(!matches.some(x=>x.v===v&&x.start===tok.start&&x.end===tok.end)){
+            matches.push({term:tok.word,v,start:tok.start,end:tok.end,exact:norm(tok.word)===term});
+          }
+          break;
+        }
+      }
+    });
+  });
+
+  // Le espressioni più lunghe hanno precedenza sulle singole parole che
+  // potrebbero trovarsi al loro interno.
+  matches.sort((a,b)=>(b.end-b.start)-(a.end-a.start)||a.start-b.start);
+  const chosen=[];
+  for(const x of matches){
+    if(!chosen.some(y=>x.start<y.end&&x.end>y.start)) chosen.push(x);
+  }
+  return chosen.sort((a,b)=>a.start-b.start);
+}
+document.getElementById("analyzeBtn").addEventListener("click",()=>{
+ const s=document.getElementById("sentenceBox").value.trim(), box=document.getElementById("sentenceResults"); if(!s){box.innerHTML='';return;} const found=findMatches(s), n=norm(s), covered=new Array(n.length).fill(false); found.forEach(f=>{for(let i=f.start;i<f.end;i++)covered[i]=true;}); const toks=sentenceTokens(s).out, unknown=[]; toks.forEach(tok=>{const w=norm(tok.word); const isCovered=covered.slice(tok.start,tok.end).some(Boolean); if(!isCovered && !IGNORE_IN_SENTENCE.has(w)) unknown.push(w);});
+ box.innerHTML='<h3>Vocaboli trovati nel tuo archivio</h3>'+ (found.length?found.map(f=>`<div class="result"><strong>${esc(f.term)}</strong> ${f.exact?'':'<span class="tag">forma riconosciuta</span>'} → <span class="jp">${esc(f.v.jp)}</span>${f.v.reading?` <span class="reading">（${esc(f.v.reading)}）</span>`:''}${f.v.note?`<div class="meta">${esc(f.v.note)}</div>`:''}</div>`).join(''):'<div class="empty">Non ho riconosciuto nessun vocabolo.</div>')+'<h3 style="margin-top:22px">Parti non riconosciute</h3><p>'+(unknown.length?unknown.map(x=>`<span class="unknown">${esc(x)}</span>`).join(' '):'<span class="known">La frase è interamente coperta dal tuo archivio.</span>')+'</p><div class="card" style="background:#fafafa;margin-top:16px"><strong>🎯 Ora tocca a te</strong><p>Usa i vocaboli mostrati per costruire autonomamente la frase giapponese.</p></div><small>Il riconoscimento delle forme italiane è volutamente prudente: considera parole intere e alcune forme verbali comuni. Non è un traduttore.</small>';
+});
+document.getElementById("clearSentence").addEventListener("click",()=>{
+  document.getElementById("sentenceBox").value="";
+  document.getElementById("sentenceResults").innerHTML="";
+});
+
+// ---------- Completamento massivo dei significati italiani (scheda dedicata) ----------
+let bulkPage = 0;
+function bulkMissing(){
+  const q=norm(document.getElementById("bulkItFilter")?.value||"");
+  return vocab.filter(v=>v.source==="WaniKani"&&!String(v.it||"").trim() && (!q || [v.jp,v.reading,v.wkMeaning,v.note].some(x=>norm(x||"").includes(q))));
+}
+function renderBulkIt(){
+  const list=document.getElementById("bulkItList"); if(!list)return;
+  const arr=bulkMissing();
+  const size=+(document.getElementById("bulkPageSize")?.value||50);
+  const pages=Math.max(1,Math.ceil(arr.length/size));
+  if(bulkPage>=pages) bulkPage=pages-1;
+  if(bulkPage<0) bulkPage=0;
+  const start=bulkPage*size, page=arr.slice(start,start+size);
+  document.getElementById("bulkPageInfo").textContent=arr.length?`Pagina ${bulkPage+1} di ${pages} · ${arr.length} ancora da completare`:`Nessuna voce da completare.`;
+  document.getElementById("bulkPrev").disabled=bulkPage===0;
+  document.getElementById("bulkNext").disabled=bulkPage>=pages-1;
+  if(!page.length){list.innerHTML='<div class="empty">Non ci sono vocaboli WaniKani senza significato italiano con questo filtro.</div>';return;}
+  list.innerHTML=page.map(v=>`<div class="bulk-row" data-id="${v.id}">
+    <div><div class="bulk-jp">${esc(v.jp)}</div>${v.reading?`<div class="reading">（${esc(v.reading)}）</div>`:""}</div>
+    <div class="bulk-en"><strong>EN:</strong> ${esc(v.wkMeaning||"—")}</div>
+    <div class="meta">${esc((v.note||"").replace(/^WaniKani\s*·\s*/i,""))}</div>
+    <div><label style="font-size:12px;margin-bottom:3px">Italiano</label><input class="bulk-it-input" data-id="${v.id}" value="" placeholder="es. mangiare"></div>
+  </div>`).join("");
+}
+function saveBulkIt(){
+  let changed=0;
+  document.querySelectorAll(".bulk-it-input").forEach(input=>{
+    const value=input.value.trim(); if(!value)return;
+    const v=vocab.find(x=>String(x.id)===String(input.dataset.id));
+    if(v && !String(v.it||"").trim()){v.it=value;changed++;}
+  });
+  save();
+  const remaining=vocab.filter(v=>v.source==="WaniKani"&&!String(v.it||"").trim()).length;
+  document.getElementById("bulkItStatus").innerHTML=`<div class="wk-success" style="margin-top:10px">✓ Salvate <strong>${changed}</strong> traduzioni italiane. Ne restano <strong>${remaining}</strong>.</div>`;
+  renderBulkIt();
+}
+document.getElementById("bulkItSave").addEventListener("click",saveBulkIt);
+document.getElementById("bulkItFilter").addEventListener("input",()=>{bulkPage=0;renderBulkIt();});
+document.getElementById("bulkPageSize").addEventListener("change",()=>{bulkPage=0;renderBulkIt();});
+document.getElementById("bulkPrev").addEventListener("click",()=>{bulkPage--;renderBulkIt();});
+document.getElementById("bulkNext").addEventListener("click",()=>{bulkPage++;renderBulkIt();});
+
+function renderReview(){
+  const box=document.getElementById("reviewArea");
+  if(!vocab.length){box.innerHTML='<div class="empty">Aggiungi prima qualche vocabolo.</div>';return;}
+  if(reviewIndex>=vocab.length) reviewIndex=0;
+  const v=vocab[reviewIndex];
+  box.innerHTML=`
+    <div class="result" style="text-align:center">
+      <div style="font-size:28px;font-weight:700">${esc(v.it)}</div>
+      ${reviewShown?`<div class="jp" style="margin-top:18px">${esc(v.jp)}</div>${v.reading?`<div class="reading">（${esc(v.reading)}）</div>`:""}${v.note?`<p class="meta">${esc(v.note)}</p>`:""}`
+      :`<p>Prova a ricordare il giapponese.</p>`}
+    </div>
+    <div class="toolbar" style="justify-content:center">
+      ${!reviewShown?'<button class="primary" onclick="showReviewAnswer()">Mostra risposta</button>':`
+        <button class="secondary" onclick="nextReview()">Non lo ricordavo</button>
+        <button class="primary" onclick="nextReview()">Lo ricordavo</button>`}
+    </div>`;
+}
+function showReviewAnswer(){reviewShown=true;renderReview();}
+function nextReview(){reviewShown=false;reviewIndex=(reviewIndex+1)%vocab.length;renderReview();}
+
+document.getElementById("exportBtn").addEventListener("click",()=>{
+  const blob=new Blob([JSON.stringify(vocab,null,2)],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="memoria_giapponese.json";a.click();
+  URL.revokeObjectURL(a.href);
+});
+function completeSetup(){
+  localStorage.setItem("memoria_giapponese_setup_v1","done");
+  document.getElementById("welcomeOverlay").hidden=true;
+}
+function importArchiveFile(file, fromWelcome=false){
+  if(!file)return;
+  const r=new FileReader();
+  r.onload=()=>{try{
+    const data=JSON.parse(r.result);
+    if(!Array.isArray(data))throw new Error();
+    vocab=data.map(v=>({...v,type:v.type||"vocab"}));
+    save();
+    completeSetup();
+    if(!fromWelcome) alert("Archivio importato!");
+  }catch{alert("File non valido.");}};
+  r.readAsText(file);
+}
+document.getElementById("importFile").addEventListener("change",e=>importArchiveFile(e.target.files[0]));
+document.getElementById("welcomeImport").addEventListener("change",e=>importArchiveFile(e.target.files[0],true));
+document.getElementById("startEmpty").addEventListener("click",()=>{
+  vocab=[]; save(); completeSetup();
+});
+
+// ---------- WaniKani API v2 ----------
+const WK_API = "https://api.wanikani.com/v2";
+let wkCandidates = [];
+function wkStatus(message, cls=""){ document.getElementById("wkStatus").innerHTML=message?`<div class="${cls}" style="margin-top:12px">${message}</div>`:""; }
+function parseWkLevels(raw){
+  raw=(raw||"").trim(); if(!raw)return ""; const out=new Set();
+  raw.split(",").map(x=>x.trim()).filter(Boolean).forEach(part=>{const m=part.match(/^(\d+)\s*-\s*(\d+)$/); if(m){let a=Math.max(1,Math.min(60,+m[1])),b=Math.max(1,Math.min(60,+m[2]));if(a>b)[a,b]=[b,a];for(let i=a;i<=b;i++)out.add(i);}else if(/^\d+$/.test(part)){const n=+part;if(n>=1&&n<=60)out.add(n);}});
+  return [...out].sort((a,b)=>a-b).join(",");
+}
+function wkMeaning(d){const a=(d.meanings||[]).filter(x=>x.meaning);return (a.find(x=>x.primary)||a[0])?.meaning||"";}
+function wkReading(d){const a=d.readings||[];return (a.find(x=>x.primary&&x.accepted_answer)||a.find(x=>x.primary)||a[0])?.reading||"";}
+function wkAlreadyExists(jp){return vocab.some(v=>v.jp===jp);}
+async function wkFetchAll(url,token){
+  const all=[];let next=url,pages=0;
+  while(next&&pages<100){const r=await fetch(next,{headers:{Authorization:"Bearer "+token,"Wanikani-Revision":"20170710"}});if(!r.ok){let msg="";try{msg=(await r.json()).error||""}catch(_){}throw new Error(`Errore WaniKani HTTP ${r.status}${msg?": "+msg:""}`);}const b=await r.json();all.push(...(b.data||[]));next=b.pages?.next_url||null;pages++;}
+  return all;
+}
+function renderWkCandidates(){
+  const card=document.getElementById("wkResultsCard"),box=document.getElementById("wkResults");card.style.display="block";
+  if(!wkCandidates.length){box.innerHTML='<div class="empty">Nessun vocabolo disponibile con i filtri scelti.</div>';return;}
+  box.innerHTML=wkCandidates.map((x,i)=>`<div class="wk-row ${x.existing?'wk-existing':''}"><input class="wk-check" type="checkbox" data-i="${i}" ${x.existing?"disabled":"checked"}><div class="wk-main"><div class="wk-jp">${esc(x.jp)} <span class="reading">（${esc(x.reading)}）</span></div><div class="wk-meaning"><strong>WaniKani (EN):</strong> ${esc(x.meaning)}<br><small>🇮🇹 Il significato italiano verrà completato nel tuo archivio.</small></div>${x.pos?.length?`<small>${esc(x.pos.join(", "))}</small>`:""}</div><div class="wk-level">Lv. ${esc(x.level)}${x.existing?" · già presente":""}</div></div>`).join("");
+}
+document.getElementById("wkLoad").addEventListener("click",async()=>{
+  const token=document.getElementById("wkToken").value.trim();if(!token){wkStatus("Inserisci il tuo API token v2.","wk-error");return;}
+  const levels=parseWkLevels(document.getElementById("wkLevels").value),type=document.getElementById("wkType").value,params=new URLSearchParams();params.set("types",type==="both"?"vocabulary,kana_vocabulary":type);params.set("hidden","false");if(levels)params.set("levels",levels);
+  wkStatus("⏳ Recupero dei vocaboli da WaniKani…");document.getElementById("wkResultsCard").style.display="none";
+  try{const data=await wkFetchAll(`${WK_API}/subjects?${params.toString()}`,token);wkCandidates=data.filter(x=>x.object==="vocabulary"||x.object==="kana_vocabulary").map(x=>{const d=x.data||{};return {wkId:x.id,jp:d.characters||"",reading:wkReading(d),meaning:wkMeaning(d),level:d.level||"",pos:d.parts_of_speech||[],url:d.document_url||"",existing:wkAlreadyExists(d.characters||"")};}).filter(x=>x.jp&&x.meaning);wkStatus(`✓ Ricevuti <strong>${wkCandidates.length}</strong> vocaboli; <strong>${wkCandidates.filter(x=>!x.existing).length}</strong> nuovi per il tuo archivio.` ,"wk-success");renderWkCandidates();}
+  catch(e){wkStatus("⚠️ "+esc(e.message||"Impossibile contattare WaniKani."),"wk-error");}
+});
+document.getElementById("wkImportSelected").addEventListener("click",()=>{let imported=0;document.querySelectorAll(".wk-check").forEach(c=>{if(!c.checked||c.disabled)return;const x=wkCandidates[+c.dataset.i];if(!x||wkAlreadyExists(x.jp))return;vocab.push({id:Date.now()+imported,type:"vocab",it:"",jp:x.jp,reading:x.reading,syn:[],note:`WaniKani · livello ${x.level}${x.pos.length?" · "+x.pos.join(", "):""}`,wkMeaning:x.meaning,source:"WaniKani",wkId:x.wkId,wkLevel:x.level,wkUrl:x.url});imported++;});save();wkCandidates.forEach(x=>{if(wkAlreadyExists(x.jp))x.existing=true;});renderWkCandidates();wkStatus(`✓ Importati <strong>${imported}</strong> vocaboli nel tuo archivio.` ,"wk-success");});
+document.getElementById("wkSelectAll").addEventListener("click",()=>document.querySelectorAll(".wk-check:not(:disabled)").forEach(c=>c.checked=true));
+document.getElementById("wkSelectNone").addEventListener("click",()=>document.querySelectorAll(".wk-check:not(:disabled)").forEach(c=>c.checked=false));
+document.getElementById("wkClearToken").addEventListener("click",()=>{document.getElementById("wkToken").value="";wkStatus("Token cancellato dal campo.");});
+
+updateStats();renderList();renderBulkIt();
+
+// Primo avvio: se esiste già un archivio (per esempio proveniente dalla 4.9), lo manteniamo.
+const setupDone=localStorage.getItem("memoria_giapponese_setup_v1")==="done";
+if(!setupDone){
+  if(vocab.length>0){ localStorage.setItem("memoria_giapponese_setup_v1","done"); }
+  else { document.getElementById("welcomeOverlay").hidden=false; }
+}
+
+// Registrazione PWA: funziona quando l'app è servita via HTTPS/localhost; con file:// viene semplicemente ignorata.
+if("serviceWorker" in navigator && location.protocol!=="file:"){
+  window.addEventListener("load",()=>navigator.serviceWorker.register("service-worker.js").catch(()=>{}));
+}
+</script>
+</body>
+</html>
